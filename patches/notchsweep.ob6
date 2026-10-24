@@ -1,0 +1,20 @@
+# The SEM trick: the LFO sweeps the filter mode through LP -> notch -> HP.
+name = OB6 Notch Sweep
+osc1.shape = 0.5
+osc2.shape = 0.85
+osc2.pw = 0.4
+mix.noise = 0.08
+filter.cutoff = 0.55
+filter.resonance = 0.45
+filter.mode = 0.5
+filter.envamt = 0
+lfo.rate = 0.3
+lfo.shape = sine
+lfo.amount = 0.8
+lfo.dest.freq1 = off
+lfo.dest.freq2 = off
+lfo.dest.mode = on
+aenv.attack = 0.3
+aenv.sustain = 1
+aenv.release = 0.5
+fx.chorus.mix = 0.35

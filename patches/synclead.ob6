@@ -1,0 +1,24 @@
+# Sync lead: osc 1 hard-synced to osc 2, filter env sweeps osc 1 pitch.
+name = OB6 Sync Lead
+osc1.freq = 12
+osc1.sync = on
+osc1.shape = 0.5
+osc2.shape = 0.5
+osc2.fine = 0
+mix.osc2 = 0.5
+filter.cutoff = 0.72
+filter.resonance = 0.25
+filter.envamt = 0.2
+fenv.decay = 0.55
+fenv.sustain = 0.2
+xmod.fenv = 0.35
+xmod.dest.freq1 = on
+aenv.sustain = 1
+aenv.release = 0.3
+glide = 0.25
+unison = on
+unison.voices = 2
+unison.detune = 0.15
+fx.delay.mix = 0.25
+fx.delay.time = 0.62
+fx.delay.feedback = 0.3

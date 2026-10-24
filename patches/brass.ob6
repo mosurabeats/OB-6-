@@ -1,0 +1,19 @@
+# Classic Oberheim poly brass: saws, filter envelope swell, a little slop.
+name = OB6 Brass
+osc1.shape = 0.5
+osc2.shape = 0.5
+osc2.fine = 0.12
+filter.cutoff = 0.42
+filter.resonance = 0.18
+filter.envamt = 0.42
+filter.keytrack = 0.5
+filter.velocity = 0.5
+fenv.attack = 0.38
+fenv.decay = 0.55
+fenv.sustain = 0.45
+fenv.release = 0.45
+aenv.attack = 0.25
+aenv.decay = 0.5
+aenv.sustain = 0.9
+aenv.release = 0.42
+vintage = 0.35

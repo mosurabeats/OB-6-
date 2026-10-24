@@ -1,0 +1,25 @@
+# Slow string pad: pulse + saw, PWM from the LFO, chorus.
+name = OB6 Strings
+osc1.shape = 0.75
+osc1.pw = 0.3
+osc2.shape = 0.5
+osc2.fine = 0.15
+filter.cutoff = 0.58
+filter.resonance = 0.1
+filter.envamt = 0.12
+fenv.attack = 0.6
+fenv.decay = 0.7
+fenv.sustain = 0.6
+fenv.release = 0.62
+aenv.attack = 0.62
+aenv.sustain = 1
+aenv.release = 0.62
+lfo.rate = 0.4
+lfo.shape = triangle
+lfo.amount = 0.55
+lfo.dest.freq1 = off
+lfo.dest.freq2 = off
+lfo.dest.pw = on
+fx.chorus.mix = 0.5
+fx.chorus.depth = 0.6
+vintage = 0.4

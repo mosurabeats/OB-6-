@@ -1,0 +1,20 @@
+# Punchy mono bass: saw + square sub, snappy filter envelope.
+name = OB6 Bass
+osc1.shape = 0.5
+osc2.shape = 1
+osc2.freq = -12
+osc2.fine = 0.03
+mix.sub = 0.6
+filter.cutoff = 0.3
+filter.resonance = 0.3
+filter.envamt = 0.45
+filter.keytrack = 0.3
+fenv.decay = 0.42
+fenv.sustain = 0.15
+fenv.release = 0.3
+aenv.decay = 0.5
+aenv.sustain = 0.85
+aenv.release = 0.2
+unison = on
+unison.voices = 1
+vintage = 0.15

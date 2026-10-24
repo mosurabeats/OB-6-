@@ -1,0 +1,17 @@
+# Poly pluck: no sustain, so it renders as one-shot samples.
+name = OB6 Pluck
+osc1.shape = 0.62
+osc1.pw = 0.2
+osc2.shape = 0.5
+osc2.freq = 12
+mix.osc2 = 0.4
+filter.cutoff = 0.38
+filter.resonance = 0.32
+filter.envamt = 0.5
+filter.velocity = 0.6
+fenv.decay = 0.5
+fenv.sustain = 0
+aenv.decay = 0.62
+aenv.sustain = 0
+aenv.release = 0.55
+fx.chorus.mix = 0.3

@@ -1,0 +1,22 @@
+# X-Mod bell: osc 2 frequency-modulates osc 1 and the cutoff, band-pass.
+name = OB6 XMod Bell
+osc1.shape = 0
+osc2.shape = 0
+osc2.freq = 7
+osc2.fine = 0.02
+mix.osc2 = 0.3
+mix.osc1 = 1
+filter.cutoff = 0.45
+filter.resonance = 0.55
+filter.bandpass = on
+filter.envamt = 0.25
+fenv.decay = 0.7
+fenv.sustain = 0
+xmod.osc2 = 0.55
+xmod.fenv = 0.1
+xmod.dest.freq1 = on
+xmod.dest.cutoff = on
+aenv.decay = 0.78
+aenv.sustain = 0
+aenv.release = 0.7
+vintage = 0.1
