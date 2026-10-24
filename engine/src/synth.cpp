@@ -156,7 +156,7 @@ void Synth::handleMidi(const uint8_t* d, size_t len) {
                 panic();
             } else if (a == 123) {
                 allNotesOff();
-            } else if (const ParamInfo* info = findParamByCC(a)) {
+            } else if (const ParamInfo* info = ccParams_ ? findParamByCC(a) : nullptr) {
                 setParam(info->id, info->min + (info->max - info->min) * static_cast<float>(b) / 127.0f);
             }
             break;

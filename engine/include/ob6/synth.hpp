@@ -34,6 +34,10 @@ public:
 
     // Raw MIDI bytes of one complete channel message (any channel).
     void handleMidi(const uint8_t* data, size_t len);
+    // Whether CCs from the table in params.hpp set parameters. A host that
+    // maps CCs to parameters itself (the MPC VST wrapper) turns this off so
+    // its screen stays in sync.
+    void setCcParamsEnabled(bool enabled) { ccParams_ = enabled; }
 
     // Renders `frames` stereo samples, overwriting the buffers.
     void process(float* outL, float* outR, size_t frames);
@@ -67,6 +71,7 @@ private:
     float bend_ = 0.0f, wheel_ = 0.0f, aftertouch_ = 0.0f;
     float dcX_ = 0.0f, dcY_ = 0.0f;  // DC blocker state (AC coupling)
     float dcCoef_ = 0.999f;
+    bool ccParams_ = true;
 };
 
 }  // namespace ob6

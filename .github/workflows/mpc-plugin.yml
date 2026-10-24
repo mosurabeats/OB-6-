@@ -1,0 +1,32 @@
+# Builds the MPC OS plugin (armv7 for Gen1/Force, aarch64 for Gen2 such as
+# the MPC Key 37 Gen2) with sd88me/mpc-vst-plugins' own release workflow and
+# uploads the install zips as run artifacts. Tick "draft release" to also
+# attach them to a draft GitHub release.
+name: MPC plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Plugin version, e.g. 0.1.0
+        required: true
+        default: 0.1.0
+      draft_release:
+        description: Also create a draft release (otherwise artifacts only)
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    uses: sd88me/mpc-vst-plugins/.github/workflows/vst-release.yml@f4df8c638b06ac1c0a700fa3aaa9f3cad9d1f2c5
+    with:
+      tag: hexasv-v${{ inputs.version }}
+      version: ${{ inputs.version }}
+      tools_ref: f4df8c638b06ac1c0a700fa3aaa9f3cad9d1f2c5
+      vst_dir: mpc
+      build: '"$MPC_VST/tools/build_port.sh" mpc/vst.json'
+      host_test: '"$MPC_VST/tools/test_port.sh" mpc/vst.json'
+      about: Six-voice OB-6-style analog polysynth (2 VCOs, SEM-style state-variable filter, X-Mod) for MPC OS
+      dry_run: ${{ !inputs.draft_release }}

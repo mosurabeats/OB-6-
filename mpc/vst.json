@@ -1,0 +1,33 @@
+{
+  "name": "HexaSV",
+  "vendor": "mosurabeats",
+  "uid": "HxSV",
+  "version": 1000,
+  "so": "hexasv.so",
+  "params": "params.json",
+  "presets": "presets.json",
+  "defines": {
+    "SAMPLE_ACCURATE": 1
+  },
+  "targets": [
+    "armv7",
+    "aarch64"
+  ],
+  "build": {
+    "root": "..",
+    "sources": [
+      "engine/src/params.cpp",
+      "engine/src/voice.cpp",
+      "engine/src/synth.cpp",
+      "mpc/src/mpc_engine.cpp"
+    ],
+    "cflags": [
+      "-std=gnu++17",
+      "-Iengine/include",
+      "-O2"
+    ],
+    "libs": [
+      "-lm"
+    ]
+  }
+}

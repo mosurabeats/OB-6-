@@ -1,8 +1,14 @@
 # OB-6 Clone for MPC Key 37
 
-A clean-room, OB-6-style polyphonic synth engine, plus a tool that turns its
-patches into multisampled **Keygroup programs** for the Akai MPC Key 37.
-The programs load from a USB drive on stock firmware 3.9.1.
+A clean-room, OB-6-style polyphonic synth engine for the Akai MPC Key 37
+(MPC OS 3.9.1), in two forms:
+
+- **HexaSV**, a native MPC OS plugin built on
+  [sd88me/mpc-vst-plugins](https://github.com/sd88me/mpc-vst-plugins). The
+  real engine runs live on the MPC, with a touchscreen skin, Q-Links and
+  presets. It is installed through that project's USB-stick route on 3.9.1.
+- **Keygroup programs** rendered on your computer, which load from a USB
+  drive on stock firmware with no root access.
 
 This is an independent project inspired by the Sequential/Oberheim OB-6. It
 does not use Sequential code, samples or presets.
@@ -12,10 +18,11 @@ does not use Sequential code, samples or presets.
 | Path | Contents |
 |---|---|
 | `engine/` | Portable C++17 synth engine, no dependencies, allocation-free audio path |
-| `tools/ob6render/` | `ob6render` CLI: patch → `.xpm` + looped WAVs, calibration, demo render |
+| `mpc/` | MPC OS plugin port: `mpc_engine()` adapter, `vst.json`, generated params/presets |
+| `tools/ob6render/` | `ob6render` CLI: patch → `.xpm` + looped WAVs, calibration, demo render, port file generation |
 | `patches/` | Starter patches (`.ob6` text files) |
 | `tests/` | Engine and renderer tests |
-| `docs/MPC_KEY37.md` | **USB loading and calibration on the MPC** |
+| `docs/MPC_KEY37.md` | **Installing on the Key 37: plugin or keygroups** |
 | `docs/PARAMETERS.md` | Every patch parameter, range and MIDI CC |
 
 ### Engine (per voice, 6 voices)
@@ -50,8 +57,12 @@ ctest --test-dir build                                   # 20 tests
 ```
 
 Copy `out/OB6-Clone` to a USB drive and load the `.xpm` files from the MPC
-browser. [docs/MPC_KEY37.md](docs/MPC_KEY37.md) has the full walkthrough,
-including the one-time tuning check.
+browser.
+
+The plugin zips (armv7 + aarch64) come from the **MPC plugin** GitHub
+Actions workflow, or from `tools/build_port.sh mpc/vst.json` in a checkout
+of sd88me/mpc-vst-plugins. [docs/MPC_KEY37.md](docs/MPC_KEY37.md) covers
+both install routes.
 
 ## Writing patches
 
@@ -72,22 +83,26 @@ osc1.sync = on
 
 ## Status and roadmap
 
-Working and tested on desktop: the engine, rendering, loop crossfades
-(seams measured below one normal sample step), the XPM writer, and tuning
-to within 1 cent.
+Working and tested off-device:
 
-Not yet verified on a Key 37: see "Unverified on hardware" in
+- **Engine:** pitch is within 1 cent and polyBLEP aliasing is at
+  textbook level.
+- **Plugin port:** passes sd88me's `test_port.sh` with all 163 checks,
+  under ASan/UBSan on x86 and under UBSan as an aarch64 binary in QEMU. The
+  aarch64 `.so` links with `--no-undefined`, exports only `VSTPluginMain`
+  and needs glibc ≤ 2.38.
+- **Keygroup renderer:** loop seams measure below one normal sample step.
+
+Nothing has run on a Key 37 yet; see the status column in
 `docs/MPC_KEY37.md`.
 
 Next steps:
 
-1. On-device check of the XPM on 3.9.1 (root offset, release curve, loops).
-2. Round-robin layers that capture the vintage slop note-to-note.
-3. Q-Link assignments in the XPM, and an "open filter" render mode that
-   hands cutoff/resonance to the MPC filter for live tweaking.
-4. Higher-order BLEP or oversampling to cut high-note aliasing further
-   (currently −28 dB at ~2.5 kHz, textbook polyBLEP).
-5. `.xpn` expansion packaging, more OB-6-style FX, and an arp/sequencer
-   for the live engine.
-6. A real-time host (MIDI in/audio out) for desktop, and for the MPC if a
-   community-modified OS is used.
+1. First device run of HexaSV: sd88me's checklist, plus a CPU bench with
+   `tools/bench.sh`.
+2. A hand-made skin layout (`mpc/layout.conf`) to replace the auto-layout,
+   with the artwork tile for the Instruments browser.
+3. A catalog listing in mpc-vst-plugins (needs a licence for this repo).
+4. Higher-order BLEP or oversampling to cut high-note aliasing further.
+5. Arp/sequencer and more OB-6-style FX (reverb, phaser).
+6. On-device check of the keygroup XPM (root offset, release curve, loops).

@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  # sd88me/mpc-vst-plugins commit the MPC OS port is built and tested against.
+  MPC_VST_REF: f4df8c638b06ac1c0a700fa3aaa9f3cad9d1f2c5
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and run engine tests
+        run: |
+          cmake -S . -B build
+          cmake --build build -j
+          ctest --test-dir build --output-on-failure
+
+      - name: Generated MPC port files are up to date
+        run: |
+          mpc/regen.sh
+          git diff --exit-code -- mpc/params.json mpc/presets.json
+
+      - name: Check out mpc-vst-plugins
+        uses: actions/checkout@v4
+        with:
+          repository: sd88me/mpc-vst-plugins
+          ref: ${{ env.MPC_VST_REF }}
+          path: mpc-vst-plugins
+          persist-credentials: false
+
+      - name: MPC OS port host test (ASan/UBSan)
+        run: mpc-vst-plugins/tools/test_port.sh mpc/vst.json

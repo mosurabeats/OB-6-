@@ -1,6 +1,8 @@
 // ob6render: turns OB-6 clone patches into MPC Keygroup programs that load
 // from a USB drive on stock MPC firmware, plus auditioning helpers.
 
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -32,7 +34,9 @@ int usage() {
         "  ob6render calibrate -o <usb-dir> [--root-offset N]\n"
         "  ob6render demo <patch.ob6> -o <file.wav>\n"
         "  ob6render params [--markdown]\n"
-        "  ob6render dump <patch.ob6>\n",
+        "  ob6render dump <patch.ob6>\n"
+        "  ob6render mpc-params                     params.json for the MPC OS plugin port (stdout)\n"
+        "  ob6render mpc-presets <patch.ob6>...     presets.json for the MPC OS plugin port (stdout)\n",
         stderr);
     return 2;
 }
@@ -221,6 +225,194 @@ int cmdDump(const Args& a) {
     return 0;
 }
 
+
+// --- MPC OS plugin port (mpc/): params.json and presets.json --------------
+
+std::string portKey(const char* key) {
+    std::string k = key;
+    for (char& c : k)
+        if (c == '.') c = '_';
+    return k;
+}
+
+std::string jsonStr(const std::string& s) {
+    std::string r = "\"";
+    for (char c : s) {
+        if (c == '"' || c == '\\') r += '\\';
+        r += c;
+    }
+    return r + "\"";
+}
+
+// Option labels for stepped params whose description is a `|` list.
+std::vector<std::string> labelsOf(const ob6::ParamInfo& info) {
+    std::vector<std::string> out;
+    const std::string d = info.description;
+    if (info.kind == ob6::Kind::Toggle) return {"Off", "On"};
+    if (d.find('|') == std::string::npos) return out;
+    size_t start = 0;
+    while (true) {
+        const size_t bar = d.find('|', start);
+        std::string w = d.substr(start, bar == std::string::npos ? std::string::npos : bar - start);
+        if (!w.empty()) w[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(w[0])));
+        out.push_back(w);
+        if (bar == std::string::npos) return out;
+        start = bar + 1;
+    }
+}
+
+// Screen name: what the MPC shows on the plugin page and the Q-Link screen,
+// where labels are cut at 10 characters.
+std::string screenName(const std::string& key) {
+    static const std::pair<const char*, const char*> names[] = {
+        {"osc1.freq", "O1 Freq"},
+        {"osc1.shape", "O1 Shape"},
+        {"osc1.pw", "O1 PW"},
+        {"osc1.sync", "O1 Sync"},
+        {"osc2.freq", "O2 Freq"},
+        {"osc2.fine", "O2 Fine"},
+        {"osc2.shape", "O2 Shape"},
+        {"osc2.pw", "O2 PW"},
+        {"osc2.lowfreq", "O2 Lo Freq"},
+        {"osc2.keytrack", "O2 KeyTrk"},
+        {"mix.osc1", "Osc1 Lvl"},
+        {"mix.osc2", "Osc2 Lvl"},
+        {"mix.sub", "Sub Lvl"},
+        {"mix.noise", "Noise Lvl"},
+        {"filter.cutoff", "Cutoff"},
+        {"filter.resonance", "Resonance"},
+        {"filter.mode", "Mode"},
+        {"filter.bandpass", "Bandpass"},
+        {"filter.envamt", "Env Amt"},
+        {"filter.keytrack", "Key Track"},
+        {"filter.velocity", "Velocity"},
+        {"fenv.attack", "FE Attack"},
+        {"fenv.decay", "FE Decay"},
+        {"fenv.sustain", "FE Sustain"},
+        {"fenv.release", "FE Release"},
+        {"aenv.attack", "AE Attack"},
+        {"aenv.decay", "AE Decay"},
+        {"aenv.sustain", "AE Sustain"},
+        {"aenv.release", "AE Release"},
+        {"aenv.velocity", "AE Vel"},
+        {"lfo.rate", "LFO Rate"},
+        {"lfo.shape", "LFO Shape"},
+        {"lfo.amount", "LFO Amount"},
+        {"lfo.dest.freq1", "LFO>Freq1"},
+        {"lfo.dest.freq2", "LFO>Freq2"},
+        {"lfo.dest.pw", "LFO>PW"},
+        {"lfo.dest.cutoff", "LFO>Cutoff"},
+        {"lfo.dest.mode", "LFO>Mode"},
+        {"lfo.dest.amp", "LFO>Amp"},
+        {"xmod.fenv", "XM F.Env"},
+        {"xmod.osc2", "XM Osc2"},
+        {"xmod.dest.freq1", "XM>Freq1"},
+        {"xmod.dest.shape1", "XM>Shape1"},
+        {"xmod.dest.pw1", "XM>PW1"},
+        {"xmod.dest.cutoff", "XM>Cutoff"},
+        {"xmod.dest.mode", "XM>Mode"},
+        {"glide", "Glide"},
+        {"unison", "Unison"},
+        {"unison.voices", "Uni Voices"},
+        {"unison.detune", "Uni Detune"},
+        {"voices", "Voices"},
+        {"vintage", "Vintage"},
+        {"bend.range", "Bend Range"},
+        {"wheel.lfo", "Wheel LFO"},
+        {"at.cutoff", "AT Cutoff"},
+        {"at.lfo", "AT LFO"},
+        {"fx.chorus.mix", "Chorus Mix"},
+        {"fx.chorus.rate", "Cho Rate"},
+        {"fx.chorus.depth", "Cho Depth"},
+        {"fx.delay.mix", "Delay Mix"},
+        {"fx.delay.time", "Delay Time"},
+        {"fx.delay.feedback", "Delay Fdbk"},
+        {"volume", "Volume"},
+    };
+    for (const auto& [k, name] : names)
+        if (key == k) return name;
+    return key;
+}
+
+const char* sectionOf(const std::string& key) {
+    static const std::pair<const char*, const char*> prefixes[] = {
+        {"osc1.", "OSC 1"}, {"osc2.", "OSC 2"}, {"mix.", "MIXER"}, {"filter.", "FILTER"}, {"fenv.", "FILTER ENV"},
+        {"aenv.", "AMP ENV"}, {"lfo.", "LFO"}, {"xmod.", "X-MOD"}, {"fx.", "FX"}};
+    for (const auto& [prefix, label] : prefixes)
+        if (key.rfind(prefix, 0) == 0) return label;
+    return "VOICE";
+}
+
+int cmdMpcParams() {
+    std::string out = "{\n  \"name\": \"HexaSV\",\n  \"params\": [\n";
+    std::vector<std::pair<std::string, std::vector<std::string>>> sections;
+    bool first = true;
+    for (const auto& info : ob6::allParams()) {
+        char buf[256];
+        out += first ? "" : ",\n";
+        first = false;
+        out += "    {\"key\": " + jsonStr(portKey(info.key)) + ", \"name\": " + jsonStr(screenName(info.key));
+        const auto labels = labelsOf(info);
+        if (!labels.empty()) {
+            out += ", \"options\": [";
+            for (size_t i = 0; i < labels.size(); ++i) out += (i ? ", " : "") + jsonStr(labels[i]);
+            std::snprintf(buf, sizeof buf, "], \"default\": %d}", static_cast<int>(info.def));
+        } else if (info.kind == ob6::Kind::Stepped) {
+            std::snprintf(buf, sizeof buf, ", \"min\": %g, \"max\": %g, \"default\": %g, \"display\": \"int\"}",
+                          info.min, info.max, info.def);
+        } else {
+            std::snprintf(buf, sizeof buf, ", \"min\": %g, \"max\": %g, \"default\": %g}", info.min, info.max,
+                          info.def);
+        }
+        out += buf;
+        const std::string sec = sectionOf(info.key);
+        auto it = std::find_if(sections.begin(), sections.end(), [&](const auto& x) { return x.first == sec; });
+        if (it == sections.end()) it = sections.insert(sections.end(), {sec, {}});
+        it->second.push_back(portKey(info.key));
+    }
+    out += "\n  ],\n  \"sections\": [\n";
+    for (size_t s = 0; s < sections.size(); ++s) {
+        out += "    {\"label\": " + jsonStr(sections[s].first) + ", \"keys\": [";
+        for (size_t i = 0; i < sections[s].second.size(); ++i)
+            out += (i ? ", " : "") + jsonStr(sections[s].second[i]);
+        out += s + 1 < sections.size() ? "]},\n" : "]}\n";
+    }
+    out += "  ]\n}\n";
+    std::fputs(out.c_str(), stdout);
+    return 0;
+}
+
+int cmdMpcPresets(const Args& a) {
+    if (a.positional.empty()) return usage();
+    std::string out = "{\n  \"presets\": [\n";
+    for (size_t n = 0; n < a.positional.size(); ++n) {
+        ob6::Patch patch;
+        if (!loadPatch(a.positional[n], patch)) return 1;
+        std::string name = patch.name;
+        if (name.rfind("OB6 ", 0) == 0) name = name.substr(4);  // keep other makers' names off the device
+        out += "    {\"name\": " + jsonStr(name) + ", \"values\": {";
+        bool first = true;
+        for (const auto& info : ob6::allParams()) {
+            const float v = patch[info.id];
+            const auto labels = labelsOf(info);
+            std::string val;
+            if (!labels.empty()) {
+                val = jsonStr(labels[static_cast<size_t>(patch.steps(info.id))]);
+            } else {
+                char buf[32];
+                std::snprintf(buf, sizeof buf, "%g", v);
+                val = buf;
+            }
+            out += std::string(first ? "" : ", ") + jsonStr(portKey(info.key)) + ": " + val;
+            first = false;
+        }
+        out += n + 1 < a.positional.size() ? "}},\n" : "}}\n";
+    }
+    out += "  ]\n}\n";
+    std::fputs(out.c_str(), stdout);
+    return 0;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -233,5 +425,7 @@ int main(int argc, char** argv) {
     if (cmd == "demo") return cmdDemo(a);
     if (cmd == "params") return cmdParams(a);
     if (cmd == "dump") return cmdDump(a);
+    if (cmd == "mpc-params") return cmdMpcParams();
+    if (cmd == "mpc-presets") return cmdMpcPresets(a);
     return usage();
 }
